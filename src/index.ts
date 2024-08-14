@@ -53,6 +53,9 @@ async function init() {
   app.get("/home", authenticateToken, (req, res) => {
     res.json({ mssg: "hello from home server" });
   });
+  app.get("/", (req, res) => {
+    res.json({ mssg: "hello from Main server" });
+  });
 
   app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 }
