@@ -31,6 +31,7 @@ async function createApolloGraphqlServer() {
         ...graphqlDeatils.resolvers.mutations,
       },
     },
+    csrfPrevention: false
   });
 
   // Start the gql server

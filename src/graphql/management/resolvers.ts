@@ -19,8 +19,10 @@ interface SalesDetail {
 }
 
 // Fetch product details and calculate the total amount
-const fetchProductDetailsAndCalculateTotalAmount = async (salesDetails: SalesDetail[]) => {
-  const productIds = salesDetails.map(detail => detail.productId);
+const fetchProductDetailsAndCalculateTotalAmount = async (
+  salesDetails: SalesDetail[]
+) => {
+  const productIds = salesDetails.map((detail) => detail.productId);
 
   const fetchedProducts = await prisma.product.findMany({
     where: {
@@ -89,7 +91,7 @@ const queries = {
   validateToken: async (_: any, { token }: { token: string }) => {
     try {
       const decoded = jwt.verify(token, jwtsecret) as { userId: string };
-      
+
       const customer = await prisma.customer.findUnique({
         where: { customerId: decoded.userId },
       });
@@ -99,7 +101,7 @@ const queries = {
         return {
           valid: false,
           message: "Token is valid, but customer does not exist",
-          user: null,  // Ensure `user` is null if customer does not exist
+          user: null, // Ensure `user` is null if customer does not exist
         };
       }
 
@@ -113,7 +115,7 @@ const queries = {
       return {
         valid: false,
         message: "Token is invalid",
-        user: null,  // Ensure `user` is null if token is invalid
+        user: null, // Ensure `user` is null if token is invalid
       };
     }
   },
@@ -141,19 +143,23 @@ const mutations = {
           email: args.email,
         },
       });
-  
+
       const { password, ...customerWithoutPassword } = newCustomer;
       const token = jwt.sign({ userId: newCustomer.customerId }, jwtsecret, {
         expiresIn: "1h",
       });
-  
+
       context.res.cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         maxAge: 3600000,
       });
-  
-      return { token, customer: customerWithoutPassword, message: "Registration successful" };
+
+      return {
+        token,
+        customer: customerWithoutPassword,
+        message: "Registration successful",
+      };
     } catch (error) {
       console.error("Error creating customer:", error);
       throw new Error("Unable to create customer");
@@ -216,26 +222,33 @@ const mutations = {
     context: any
   ) => {
     if (!context.user) throw new Error("Not authenticated");
-  
+
+
     const offerPrice = args.sellingPrice * (1 - args.offerPercentage / 100);
     const productData: any = {
       productName: args.productName,
       description: args.description,
       costPrice: args.costPrice,
-      offerPrice: offerPrice,
       sellingPrice: args.sellingPrice,
+      offerPrice: offerPrice||0,
+      expiry: args.expiry ? new Date(args.expiry) : null,
       batchId: args.batchId,
+      manufactureDate: args.manufactureDate
+        ? new Date(args.manufactureDate)
+        : null,
       categoryName: args.categoryName,
       weight: args.weight,
-      images: args.images,
-      customerRating: args.customerRating,
-      offerPercentage: args.offerPercentage,
+      images: args.images || [],
+      customerRating: args.customerRating || null,
+      offerPercentage: args.offerPercentage || 0,
       quantity: args.quantity,
-      customerId: context.user.userId, // Include customer ID
-      expiry: args.expiry ? new Date(args.expiry) : null,
-      manufactureDate: args.manufactureDate ? new Date(args.manufactureDate) : null,
+      customer: {
+        connect: {
+          customerId: context.user.userId, // Connect using the customerId from context
+        },
+      },
     };
-  
+
     return await prisma.product.create({
       data: productData,
     });
@@ -274,8 +287,8 @@ const mutations = {
     context: any
   ) => {
     if (!context.user) throw new Error("Not authenticated");
-  
-    const productIds = args.salesDetails.map(detail => detail.productId);
+
+    const productIds = args.salesDetails.map((detail) => detail.productId);
     const fetchedProducts = await prisma.product.findMany({
       where: {
         productId: { in: productIds },
@@ -291,12 +304,15 @@ const mutations = {
       return map;
     }, {} as Record<string, string>);
 
-    const allCustomerIdsExist = args.salesDetails.every(detail =>
+    const allCustomerIdsExist = args.salesDetails.every((detail) =>
       productIdToCustomerId.hasOwnProperty(detail.productId)
     );
-    if (!allCustomerIdsExist) throw new Error("Some products do not have associated customerIds");
+    if (!allCustomerIdsExist)
+      throw new Error("Some products do not have associated customerIds");
 
-    const totalAmount = await fetchProductDetailsAndCalculateTotalAmount(args.salesDetails);
+    const totalAmount = await fetchProductDetailsAndCalculateTotalAmount(
+      args.salesDetails
+    );
     const sale = await prisma.sale.create({
       data: {
         userId: args.userId,
@@ -321,7 +337,7 @@ const mutations = {
         salesDetails: true,
       },
     });
-  
+
     return sale;
   },
 

@@ -32,23 +32,28 @@ async function init() {
     "/graphql",
     expressMiddleware(gqlServer, {
       context: async ({ req, res }) => {
-        // Extract token from Authorization header
         const authHeader = req.headers.authorization || '';
         const token = authHeader.replace('Bearer ', '');
         let user = null;
   
         if (token) {
           try {
-            user = verify(token, jwtsecret);
+            user = jwt.verify(token, jwtsecret);
           } catch (err) {
-            console.error("Invalid token", err);
+            res.status(401).json({ error: "Invalid token" });
+            return { req, res, user: null }; // Return null user if token is invalid
           }
+        } else {
+          res.status(401).json({ error: "No token found" });
+          return { req, res, user: null }; // Return null user if no token is found
         }
   
         return { req, res, user };
       },
     })
   );
+  
+  
 
   app.get("/home", authenticateToken, (req, res) => {
     res.json({ mssg: "hello from home server" });
