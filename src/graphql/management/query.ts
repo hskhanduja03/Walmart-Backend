@@ -5,4 +5,5 @@ export const queries = `#graphql
     validateToken(token: String!): TokenValidationResponse!
     customer(userId: String!): Customer!
     product(productId: String!): Product!
+    salesLength(customerId: String!): Int!
 `;

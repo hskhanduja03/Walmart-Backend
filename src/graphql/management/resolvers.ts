@@ -82,7 +82,18 @@ const queries = {
       throw new Error("Unable to fetch product");
     }
   },
-  
+
+  salesLength: async (_:any, { customerId }:any, { prisma }:any) => {
+    try {
+      const salesCount = await prisma.sale.count({
+        where: { customerId: customerId },
+      });
+      return salesCount;
+    } catch (error) {
+      console.error("Error fetching sales count:", error);
+      throw new Error("Unable to fetch sales count");
+    }
+  },
 
   customers: async (_: any, __: any, { user }: any) => {
     if (!user) throw new Error("Not authenticated");
