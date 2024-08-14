@@ -40,19 +40,16 @@ async function init() {
           try {
             user = jwt.verify(token, jwtsecret);
           } catch (err) {
-            res.status(401).json({ error: "Invalid token" });
-            return { req, res, user: null }; // Return null user if token is invalid
+            throw err;
           }
         } else {
-          res.status(401).json({ error: "No token found" });
-          return { req, res, user: null }; // Return null user if no token is found
+          console.log("No token found");
         }
   
         return { req, res, user };
       },
     })
   );
-  
   
 
   app.get("/home", authenticateToken, (req, res) => {
