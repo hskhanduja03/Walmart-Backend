@@ -42,8 +42,6 @@ async function init() {
           } catch (err) {
             throw err;
           }
-        } else {
-          console.log("No token found");
         }
   
         return { req, res, user };

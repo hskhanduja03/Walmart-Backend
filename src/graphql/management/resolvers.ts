@@ -66,6 +66,22 @@ const queries = {
       throw new Error("Unable to fetch customer");
     }
   },
+  product: async (_: any, { productId }: { productId: string }) => {
+    try {
+      const product = await prisma.product.findMany({
+        where: { productId: productId },
+      });
+
+      if (!product) {
+        throw new Error("product not found");
+      }
+
+      return product;
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      throw new Error("Unable to fetch customer");
+    }
+  },
 
   customers: async (_: any, __: any, { user }: any) => {
     if (!user) throw new Error("Not authenticated");

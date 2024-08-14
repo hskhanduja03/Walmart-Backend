@@ -4,4 +4,5 @@ export const queries = `#graphql
     sales: [Sale!]!
     validateToken(token: String!): TokenValidationResponse!
     customer(userId: String!): Customer!
+    product(productId: String!): Product!
 `;
