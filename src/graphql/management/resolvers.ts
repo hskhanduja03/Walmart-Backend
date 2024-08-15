@@ -111,8 +111,12 @@ const queries = {
 
   sales: async (_: any, __: any, { user }: any) => {
     if (!user) throw new Error("Not authenticated");
+  
     return await prisma.sale.findMany({
       where: { customerId: user.userId },
+      include: {
+        salesDetails: true, // This ensures that salesDetails are fetched with each sale
+      },
     });
   },
 

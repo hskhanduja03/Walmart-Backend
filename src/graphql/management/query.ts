@@ -6,4 +6,5 @@ export const queries = `#graphql
     customer(userId: String!): Customer!
     product(productId: String!): Product!
     salesLength: Int!
+    salesDetails: [SalesDetail!]
 `;
