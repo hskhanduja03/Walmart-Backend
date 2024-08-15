@@ -83,10 +83,10 @@ const queries = {
     }
   },
 
-  salesLength: async (_:any, { customerId }:any, { prisma }:any) => {
+  salesLength: async (_: any, __: any, { user }: any) => {
     try {
       const salesCount = await prisma.sale.count({
-        where: { customerId: customerId },
+        where: { customerId: user.userId },
       });
       return salesCount;
     } catch (error) {
