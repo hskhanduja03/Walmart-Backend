@@ -1,7 +1,6 @@
 export const typedefs = `#graphql
 input SalesDetailInput {
   productId: String!
-  sellingPrice: Float!
   quantitySold: Int!
   }
   type AuthPayload {

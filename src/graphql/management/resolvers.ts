@@ -14,10 +14,10 @@ async function hashPassword(plainPassword: string) {
 
 interface SalesDetail {
   productId: string;
-  sellingPrice: number;
   quantitySold: number;
 }
 
+// Fetch product details and calculate the total amount
 // Fetch product details and calculate the total amount
 // Fetch product details and calculate the total amount
 const fetchProductDetailsAndCalculateTotalAmount = async (
@@ -33,31 +33,30 @@ const fetchProductDetailsAndCalculateTotalAmount = async (
     },
     select: {
       productId: true,
-      offerPrice: true, // Ensure this is the correct price to use
-      customerId: true,
+      offerPrice: true, // This is the price to use for calculation
     },
   });
 
-  // Map product IDs to their details
-  const productIdToProductDetails = fetchedProducts.reduce((map, product) => {
-    map[product.productId] = product;
+  // Map product IDs to their offer price
+  const productIdToOfferPrice = fetchedProducts.reduce((map, product) => {
+    map[product.productId] = product.offerPrice;
     return map;
-  }, {} as Record<string, { offerPrice: number; customerId: string }>);
+  }, {} as Record<string, number>);
 
-  // Calculate total amount using `sellingPrice` from sales details
+  // Calculate total amount using `offerPrice` from fetched products
   const totalAmount = salesDetails.reduce((total, detail) => {
-    const productDetails = productIdToProductDetails[detail.productId];
+    const offerPrice = productIdToOfferPrice[detail.productId];
 
-    if (!productDetails) {
-      throw new Error(`Product with ID ${detail.productId} not found`);
+    if (offerPrice === undefined) {
+      throw new Error(`Offer price for product ID ${detail.productId} not found`);
     }
 
-    // Use `sellingPrice` from sales details for calculation
-    return total + detail.sellingPrice * detail.quantitySold;
+    return total + offerPrice * detail.quantitySold;
   }, 0);
 
   return totalAmount;
 };
+
 
 
 // GraphQL Queries
@@ -313,7 +312,6 @@ const mutations = {
   createSale: async (
     _: any,
     args: {
-      totalAmount: number;
       cumulativeDiscount: number;
       freightPrice: number;
       storeId: string;
@@ -323,40 +321,53 @@ const mutations = {
       saleType: PrismaSaleType;
       salesDetails: {
         productId: string;
-        sellingPrice: number;
         quantitySold: number;
       }[];
     },
     context: any
   ) => {
-    // Remove authentication check
+    // Optional: Remove authentication check if not needed
     // if (!context.user) throw new Error("Not authenticated");
-
+  
+    // Extract product IDs from salesDetails
     const productIds = args.salesDetails.map((detail) => detail.productId);
+  
+    // Fetch product details from the database
     const fetchedProducts = await prisma.product.findMany({
       where: {
         productId: { in: productIds },
       },
       select: {
         productId: true,
+        offerPrice: true, // Use this for calculation
         customerId: true,
       },
     });
-
-    const productIdToCustomerId = fetchedProducts.reduce((map, product) => {
-      map[product.productId] = product.customerId;
+  
+    // Map product IDs to their offer price and customerId
+    const productIdToDetails = fetchedProducts.reduce((map, product) => {
+      map[product.productId] = { offerPrice: product.offerPrice, customerId: product.customerId };
       return map;
-    }, {} as Record<string, string>);
-
+    }, {} as Record<string, { offerPrice: number; customerId: string }>);
+  
+    // Verify that all products have associated customerIds
     const allCustomerIdsExist = args.salesDetails.every((detail) =>
-      productIdToCustomerId.hasOwnProperty(detail.productId)
+      productIdToDetails.hasOwnProperty(detail.productId)
     );
-    if (!allCustomerIdsExist)
+    if (!allCustomerIdsExist) {
       throw new Error("Some products do not have associated customerIds");
-
-    const totalAmount = await fetchProductDetailsAndCalculateTotalAmount(
-      args.salesDetails
-    );
+    }
+  
+    // Calculate the total amount using offerPrice from fetched products
+    const totalAmount = args.salesDetails.reduce((total, detail) => {
+      const productDetails = productIdToDetails[detail.productId];
+      if (!productDetails) {
+        throw new Error(`Product with ID ${detail.productId} not found`);
+      }
+      return total + productDetails.offerPrice * detail.quantitySold;
+    }, 0);
+  
+    // Create a new sale entry in the database
     const sale = await prisma.sale.create({
       data: {
         userId: args.userId,
@@ -365,25 +376,33 @@ const mutations = {
         freightPrice: args.freightPrice,
         storeId: args.storeId,
         address: args.address,
-        customerId: productIdToCustomerId[args.salesDetails[0].productId], // Assuming all details have the same customerId
+        customerId: productIdToDetails[args.salesDetails[0].productId].customerId, // Use customerId from the first product
         paymentType: args.paymentType,
         saleType: args.saleType,
         saleDate: new Date(),
         salesDetails: {
-          create: args.salesDetails.map((detail) => ({
-            productId: detail.productId,
-            sellingPrice: detail.sellingPrice,
-            quantitySold: detail.quantitySold,
-          })),
+          create: args.salesDetails.map((detail) => {
+            const productDetails = productIdToDetails[detail.productId];
+            if (!productDetails) {
+              throw new Error(`Product details for ID ${detail.productId} not found`);
+            }
+            return {
+              productId: detail.productId,
+              quantitySold: detail.quantitySold,
+              sellingPrice: productDetails.offerPrice, // Include the fetched sellingPrice
+            };
+          }),
         },
       },
       include: {
         salesDetails: true,
       },
     });
-
+  
     return sale;
-  },
+  }
+  
+  ,
 
   createCompetitorPrice: async (
     parent: any,
