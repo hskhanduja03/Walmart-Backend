@@ -19,34 +19,46 @@ interface SalesDetail {
 }
 
 // Fetch product details and calculate the total amount
+// Fetch product details and calculate the total amount
 const fetchProductDetailsAndCalculateTotalAmount = async (
   salesDetails: SalesDetail[]
 ) => {
+  // Collect product IDs from sales details
   const productIds = salesDetails.map((detail) => detail.productId);
 
+  // Fetch products from database
   const fetchedProducts = await prisma.product.findMany({
     where: {
       productId: { in: productIds },
     },
     select: {
       productId: true,
-      offerPrice: true,
+      offerPrice: true, // Ensure this is the correct price to use
       customerId: true,
     },
   });
 
+  // Map product IDs to their details
   const productIdToProductDetails = fetchedProducts.reduce((map, product) => {
     map[product.productId] = product;
     return map;
   }, {} as Record<string, { offerPrice: number; customerId: string }>);
 
+  // Calculate total amount using `sellingPrice` from sales details
   const totalAmount = salesDetails.reduce((total, detail) => {
     const productDetails = productIdToProductDetails[detail.productId];
-    return total + productDetails.offerPrice * detail.quantitySold;
+
+    if (!productDetails) {
+      throw new Error(`Product with ID ${detail.productId} not found`);
+    }
+
+    // Use `sellingPrice` from sales details for calculation
+    return total + detail.sellingPrice * detail.quantitySold;
   }, 0);
 
   return totalAmount;
 };
+
 
 // GraphQL Queries
 const queries = {
@@ -71,11 +83,11 @@ const queries = {
       const product = await prisma.product.findUnique({
         where: { productId: productId },
       });
-  
+
       if (!product) {
         throw new Error("Product not found");
       }
-  
+
       return product;
     } catch (error) {
       console.error("Error fetching product:", error);
@@ -111,7 +123,7 @@ const queries = {
 
   sales: async (_: any, __: any, { user }: any) => {
     if (!user) throw new Error("Not authenticated");
-  
+
     return await prisma.sale.findMany({
       where: { customerId: user.userId },
       include: {
@@ -255,14 +267,13 @@ const mutations = {
   ) => {
     if (!context.user) throw new Error("Not authenticated");
 
-
     const offerPrice = args.sellingPrice * (1 - args.offerPercentage / 100);
     const productData: any = {
       productName: args.productName,
       description: args.description,
       costPrice: args.costPrice,
       sellingPrice: args.sellingPrice,
-      offerPrice: offerPrice||0,
+      offerPrice: offerPrice || 0,
       expiry: args.expiry ? new Date(args.expiry) : null,
       batchId: args.batchId,
       manufactureDate: args.manufactureDate
@@ -318,7 +329,8 @@ const mutations = {
     },
     context: any
   ) => {
-    if (!context.user) throw new Error("Not authenticated");
+    // Remove authentication check
+    // if (!context.user) throw new Error("Not authenticated");
 
     const productIds = args.salesDetails.map((detail) => detail.productId);
     const fetchedProducts = await prisma.product.findMany({
