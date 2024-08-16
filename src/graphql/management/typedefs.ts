@@ -64,6 +64,7 @@ type customerPayload {
     price:Float!
     date:String!
     productId:String!
+    offerPercentage:Float
   }
 
   type Sale {

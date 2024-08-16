@@ -1,56 +1,58 @@
 export const mutations = `#graphql
 
-    login(email: String!, password: String!): AuthPayload!
+login(email: String!, password: String!): AuthPayload!
 
-    createCustomer(
-      gender: Gender!
-      name: String!
-      password: String!
-      email: String!
-    ): customerPayload!
+createCustomer(
+  gender: Gender!
+  name: String!
+  password: String!
+  email: String!
+): customerPayload!
 
-    createProduct(
-      productName:String!
-      description: String!
-      costPrice: Float!
-      expiry:String!
-      manufactureDate:String!
-      sellingPrice: Float!
-      batchId: String!
-      categoryName: String!
-      weight: Float!
-      images: [String!]!
-      customerRating: Float
-      offerPercentage: Float
-      quantity: Int!
-    ): Product!
+updateProduct(
+  productId: String!,
+  sellingPrice: Float,
+  offerPercentage: Float
+): Product
 
-    createPriceHistory(
-      price:Float!
-      productId: String!
-    ): PriceHistory!
+createProduct(
+  productName: String!
+  description: String!
+  costPrice: Float!
+  expiry: String!
+  manufactureDate: String!
+  sellingPrice: Float!
+  batchId: String!
+  categoryName: String!
+  weight: Float!
+  images: [String!]!
+  customerRating: Float
+  offerPercentage: Float
+  quantity: Int!
+): Product!
 
-    createSale(
-    cumulativeDiscount: Float!
-    freightPrice: Float!
-    storeId: String!
-    address: String!
-    userId: String!
-    paymentType: String!
-    saleType: SaleType!
-    salesDetails: [SalesDetailInput!]!
-  ): Sale!
+createPriceHistory(
+  price: Float!
+  productId: String!
+): PriceHistory!
 
-  createCompetitorPrice(
-      productId: String!
-      companyName: String!
-      price: Float!
-      freight:Float!
-      customerRating: Float
-    ): CompetitorPrice!
-    
+createSale(
+  cumulativeDiscount: Float!
+  freightPrice: Float!
+  storeId: String!
+  address: String!
+  userId: String!
+  paymentType: String!
+  saleType: SaleType!
+  salesDetails: [SalesDetailInput!]!
+): Sale!
 
+createCompetitorPrice(
+  productId: String!
+  companyName: String!
+  price: Float!
+  freight: Float!
+  customerRating: Float
+): CompetitorPrice!
     
 `;
-
-
